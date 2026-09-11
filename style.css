@@ -263,7 +263,7 @@ code {
 
 .page {
   padding: 40px clamp(18px, 5vw, 56px) 20px;
-  max-width: 1080px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -797,6 +797,8 @@ code {
   font-weight: 600;
   color: var(--sky-deep);
   text-decoration: none;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .contact-value:hover {
   text-decoration: underline;
