@@ -128,7 +128,7 @@
   color: var(--sky-deep);
 }
 
-.page { padding: 40px clamp(18px, 5vw, 56px) 20px; max-width: 1080px; margin: 0 auto; }
+.page { padding: 40px clamp(18px, 5vw, 56px) 20px; max-width: 100%; margin: 0 auto; }
 
 [hidden] { display: none !important; }
 

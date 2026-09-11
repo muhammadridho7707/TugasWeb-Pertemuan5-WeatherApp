@@ -419,6 +419,7 @@
   font-weight: 600;
   color: var(--sky-deep);
   text-decoration: none;
-
+  overflow-wrap: break-word;
+  word-break: break-word;
   &:hover { text-decoration: underline; }
 }
