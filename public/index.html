@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RidosaurusApp - WeatherApp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body>
+<div class="sky-backdrop" aria-hidden="true">
+  <div class="sun"></div>
+  <div class="cloud cloud-a"></div>
+  <div class="cloud cloud-b"></div>
+  <div class="cloud cloud-c"></div>
+</div>
+<header class="site-header">
+  <div class="header-row">
+    <div class="brand">
+      <span class="brand-mark">☀</span>
+      <span class="brand-name">RidosaurusApp</span>
+    </div>
+    <nav class="main-nav" id="mainNav" aria-label="Navigasi utama">
+      <a href="#weatherCard" class="nav-link is-active">Main</a>
+      <a href="#tentang" class="nav-link">Tentang</a>
+      <a href="#kontak" class="nav-link">Kontak</a>
+    </nav>
+    <button class="hamburger" id="hamburgerBtn" aria-label="Buka menu navigasi" aria-expanded="false" aria-controls="mainNav">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <form class="search-bar" id="searchForm" role="search">
+    <svg class="search-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <path d="M10 3a7 7 0 1 0 4.9 12.03l4.53 4.54 1.42-1.42-4.54-4.53A7 7 0 0 0 10 3Zm-5 7a5 5 0 1 1 10 0 5 5 0 0 1-10 0Z" fill="currentColor"/>
+    </svg>
+    <input type="text" id="cityInput" placeholder="Cari nama kota... (mis. Batam, Jakarta, Tokyo)" autocomplete="off" aria-label="Cari kota">
+    <button type="submit" class="search-btn">Cari</button>
+  </form>
+</header>
+<main class="page">
+  <div class="status-bar" id="statusBar" hidden>
+    <div class="spinner" aria-hidden="true"></div>
+    <span id="statusText">Memuat data cuaca...</span>
+  </div>
+
+  <section class="hero-weather" id="weatherCard">
+  </section>
+  <div class="info-grid">
+    <section class="panel time-panel" id="timePanel" aria-label="Waktu lokal">
+      <h2 class="panel-title">Waktu Lokal</h2>
+      <div class="time-display" id="localTime">--:--:--</div>
+      <div class="date-display" id="localDate">-</div>
+    </section>
+    <section class="panel map-panel" aria-label="Peta lokasi">
+      <h2 class="panel-title">Lokasi di Peta</h2>
+      <div id="map"></div>
+    </section>
+  </div>
+  <section class="panel history-panel" aria-label="Riwayat pencarian">
+    <div class="history-head">
+      <h2 class="panel-title">Riwayat Pencarian</h2>
+      <button type="button" class="clear-btn" id="clearHistory">Hapus semua</button>
+    </div>
+    <ul class="history-list" id="historyList">
+      <li class="history-empty">Belum ada riwayat pencarian.</li>
+    </ul>
+  </section>
+  <section id="tentang" class="panel info-section" aria-label="Tentang aplikasi">
+    <span class="section-tag">Tugas Rutin 5</span>
+    <h2>Tentang Aplikasi Ini</h2>
+    <p>
+      RidosaurusApp adalah Weather App yang dibuat untuk memenuhi Tugas Rutin 5 mata kuliah
+      Pemrograman Web. Aplikasi ini mengambil data cuaca secara langsung dari
+      OpenWeatherMap API menggunakan <code>fetch</code> dan <code>async/await</code>,
+      lalu menampilkan nama kota, suhu, deskripsi cuaca, ikon, dan kelembaban.
+    </p>
+    <p>
+      Aplikasi ini juga menampilkan waktu lokal kota yang dicari, peta lokasi kota
+      tersebut, serta riwayat pencarian yang tersimpan di LocalStorage dan pilihan
+      satuan suhu °C / °F. Aplikasi dilengkapi penanganan error untuk kota yang
+      tidak ditemukan maupun gangguan jaringan, beserta indikator loading saat
+      data sedang diambil.
+    </p>
+  </section>
+
+  <section id="kontak" class="panel info-section" aria-label="Kontak">
+    <span class="section-tag">Hubungi Saya</span>
+    <h2>Kontak</h2>
+    <p>Ada pertanyaan, masukan, atau menemukan bug pada aplikasi ini? Silakan hubungi saya lewat salah satu kanal di bawah.</p>
+    <ul class="contact-list">
+      <li>
+        <span class="contact-label">Nama</span>
+        <span class="contact-value">Muhammad Ridho Reyhan</span>
+      </li>
+      <li>
+        <span class="contact-label">Email</span>
+        <a class="contact-value" href="mailto:kamu@email.com">muhammadridho7707@gmail.com</a>
+      </li>
+      <li>
+        <span class="contact-label">GitHub</span>
+        <a class="contact-value" href="https://github.com/muhammadridho7707" target="_blank" rel="noopener">github.com/username</a>
+      </li>
+    </ul>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <p>Dibuat untuk Tugas Rutin 5 — Weather App &middot; Ditenagai oleh OpenWeatherMap API</p>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
