@@ -377,10 +377,9 @@ function startLocalClock(timezoneOffsetSeconds) {
 function updateMap(lat, lon, label) {
   if (!map) {
     map = L.map("map", { zoomControl: false, attributionControl: true }).setView([lat, lon], 10);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
-      subdomains: "abcd",
-      maxZoom: 20,
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+      maxZoom: 19,
     }).addTo(map);
     mapMarker = L.marker([lat, lon]).addTo(map);
   } else {
