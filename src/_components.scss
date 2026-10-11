@@ -83,7 +83,6 @@
   .search-btn { padding: 11px 18px; font-size: 13.5px; }
 }
 
-/* --- Status Bar & Loading --- */
 .status-bar {
   display: flex;
   align-items: center;
@@ -352,7 +351,6 @@
   }
 }
 
-/* --- Section Info & Kontak --- */
 .info-section {
   margin-top: 20px;
   padding: clamp(28px, 4vw, 40px);
@@ -422,4 +420,87 @@
   overflow-wrap: break-word;
   word-break: break-word;
   &:hover { text-decoration: underline; }
+}
+
+.forecast-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.forecast-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, var(--sky-primary), var(--sky-deep));
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  color: var(--white);
+  box-shadow: var(--shadow-soft);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 70%);
+    top: -40px;
+    right: -20px;
+  }
+
+  .forecast-day {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--white);
+    flex: 1;
+    text-align: left;
+    z-index: 1;
+  }
+
+  .forecast-icon {
+    width: 56px;
+    height: 56px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+    z-index: 1;
+  }
+
+  .forecast-desc {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+    text-transform: capitalize;
+    flex: 1;
+    text-align: center;
+    z-index: 1;
+  }
+
+  .forecast-temp {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+    flex: 1;
+    text-align: right;
+    z-index: 1;
+
+    strong { 
+      color: var(--white);
+      font-size: 18px;
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .forecast-card {
+    flex-direction: column;
+    gap: 12px;
+    padding: 24px 16px;
+    
+    .forecast-day, .forecast-desc, .forecast-temp {
+      text-align: center;
+      flex: auto;
+    }
+  }
 }

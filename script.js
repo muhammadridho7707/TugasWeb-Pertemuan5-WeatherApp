@@ -1,6 +1,7 @@
 const API_KEY = "e8d03753dfdc8f5416938e3c5023c80b";
 
 const BASE_URL = "https://api.openweathermap.org/data/2.5/weather";
+const FORECAST_URL = "https://api.openweathermap.org/data/2.5/forecast";
 const HISTORY_KEY = "skylook_history";
 const UNIT_KEY = "skylook_unit";
 
@@ -18,14 +19,18 @@ const clearHistoryBtn = document.getElementById("clearHistory");
 const navLinks = document.querySelectorAll(".nav-link");
 const mainNav = document.getElementById("mainNav");
 const hamburgerBtn = document.getElementById("hamburgerBtn");
+const forecastGrid = document.getElementById("forecastGrid");
+const forecastTitle = document.getElementById("forecastTitle");
+const DAY_NAMES_ID = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 const sections = ["weatherCard", "tentang", "kontak"]
   .map((id) => document.getElementById(id))
   .filter(Boolean);
 
-let unit = localStorage.getItem(UNIT_KEY) || "metric"; // metric = °C, imperial = °F
+let unit = localStorage.getItem(UNIT_KEY) || "metric";
 let clockTimer = null;
 let map = null;
 let mapMarker = null;
+let homeCity = null;
 
 navLinks.forEach((link) => {
   link.addEventListener("click", () => {
@@ -141,7 +146,6 @@ function handleFetchError(err) {
   } else if (err.message === "API_ERROR") {
     showError("Server cuaca sedang bermasalah. Coba beberapa saat lagi.");
   } else if (err instanceof TypeError) {
-    // fetch gagal total, biasanya karena tidak ada koneksi internet
     showError("Tidak dapat terhubung ke internet. Periksa koneksimu, lalu coba lagi.");
   } else {
     showError("Terjadi kesalahan yang tidak terduga. Silakan coba lagi.");
@@ -195,8 +199,156 @@ function renderWeather(data) {
       unit = btn.dataset.unit;
       localStorage.setItem(UNIT_KEY, unit);
       fetchWeatherByCity(data.name);
+      if (homeCity) fetchForecast(homeCity.lat, homeCity.lon);
     });
   });
+}
+
+function setHomeCity(lat, lon, name) {
+  homeCity = { lat, lon, name };
+  if (forecastTitle) forecastTitle.textContent = `Ramalan 5 Hari — ${name}`;
+  fetchForecast(lat, lon);
+}
+
+async function fetchForecast(lat, lon) {
+  forecastGrid.innerHTML = `<p class="forecast-loading">Memuat ramalan...</p>`;
+  try {
+    const url = `${FORECAST_URL}?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=${unit}&lang=id`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("FORECAST_ERROR");
+
+    const data = await response.json();
+    const dailyForecast = buildDailyForecast(data);
+    renderForecast(dailyForecast);
+  } catch (err) {
+    console.error(err);
+    forecastGrid.innerHTML = `<p class="forecast-empty">Gagal memuat ramalan cuaca.</p>`;
+  }
+}
+
+function toCityLocalDate(unixSeconds, timezoneOffsetSeconds) {
+  const browserOffsetMs = new Date().getTimezoneOffset() * 60000;
+  return new Date(unixSeconds * 1000 + browserOffsetMs + timezoneOffsetSeconds * 1000);
+}
+
+function buildDailyForecast(data) {
+  const tz = data.city.timezone;
+
+  const grouped = data.list.reduce((acc, item) => {
+    const localDate = toCityLocalDate(item.dt, tz);
+    const key = `${localDate.getFullYear()}-${localDate.getMonth()}-${localDate.getDate()}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push({ ...item, localDate });
+    return acc;
+  }, {});
+
+  const now = toCityLocalDate(Math.floor(Date.now() / 1000), tz);
+  const todayKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+
+  return Object.entries(grouped)
+    .filter(([key]) => key !== todayKey)
+    .slice(0, 5)
+    .map(([, items]) => {
+      const temps = items.map((item) => item.main.temp);
+      const midday = items.reduce((closest, item) => {
+        const diff = Math.abs(item.localDate.getHours() - 12);
+        const closestDiff = Math.abs(closest.localDate.getHours() - 12);
+        return diff < closestDiff ? item : closest;
+      });
+
+      return {
+        date: midday.localDate,
+        min: Math.round(Math.min(...temps)),
+        max: Math.round(Math.max(...temps)),
+        icon: midday.weather[0].icon,
+        description: midday.weather[0].description,
+        hourly: items.map((item) => ({
+          hour: item.localDate.getHours(),
+          temp: Math.round(item.main.temp),
+        })),
+      };
+    });
+}
+
+function buildTempChart(days) {
+  const W = 700;
+  const H = 80;
+  const PAD_X = 10;
+  const allTemps = days.flatMap((d) => d.hourly.map((h) => h.temp));
+  const tMin = Math.min(...allTemps);
+  const tMax = Math.max(...allTemps);
+  const range = tMax - tMin || 1;
+
+  const cardW = Math.floor((W - PAD_X * 2) / days.length);
+
+  const points = days.map((day, di) => {
+    const midHour = day.hourly.reduce((a, b) =>
+      Math.abs(a.hour - 12) < Math.abs(b.hour - 12) ? a : b
+    );
+    const x = PAD_X + di * cardW + cardW / 2;
+    const y = H - 14 - ((midHour.temp - tMin) / range) * (H - 28);
+    return { x, y, temp: midHour.temp };
+  });
+
+  const pathD = points
+    .map((p, i) => {
+      if (i === 0) return `M ${p.x} ${p.y}`;
+      const prev = points[i - 1];
+      const cx = (prev.x + p.x) / 2;
+      return `C ${cx} ${prev.y} ${cx} ${p.y} ${p.x} ${p.y}`;
+    })
+    .join(" ");
+
+  const fillD = `${pathD} L ${points[points.length - 1].x} ${H} L ${points[0].x} ${H} Z`;
+
+  const labels = points
+    .map(
+      (p) =>
+        `<text x="${p.x}" y="${p.y - 6}" text-anchor="middle" class="chart-label">${p.temp}${unit === "metric" ? "°" : "°F"}</text>`
+    )
+    .join("");
+
+  return `
+    <svg class="forecast-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--sky-bright)" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="var(--sky-bright)" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d="${fillD}" fill="url(#chartFill)"/>
+      <path d="${pathD}" stroke="var(--sky-bright)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      ${labels}
+    </svg>`;
+}
+
+function renderForecast(days) {
+  const tempUnit = unit === "metric" ? "°C" : "°F";
+
+  if (days.length === 0) {
+    forecastGrid.innerHTML = `<p class="forecast-empty">Data ramalan tidak tersedia.</p>`;
+    return;
+  }
+
+  const chart = buildTempChart(days);
+
+  const cards = days
+    .map(
+      (day) => `
+      <div class="forecast-card">
+        <span class="forecast-day">${DAY_NAMES_ID[day.date.getDay()]}</span>
+        <span class="forecast-date">${day.date.getDate()}/${day.date.getMonth() + 1}</span>
+        <img class="forecast-icon" src="https://openweathermap.org/img/wn/${day.icon}@2x.png" alt="${day.description}">
+        <span class="forecast-desc">${day.description}</span>
+        <span class="forecast-temp"><strong>${day.max}${tempUnit}</strong> <span class="temp-min">${day.min}${tempUnit}</span></span>
+      </div>`
+    )
+    .join("");
+
+  forecastGrid.innerHTML = `
+    <div class="forecast-chart-wrap">${chart}</div>
+    <div class="forecast-cards-wrap">${cards}</div>
+  `;
 }
 
 function startLocalClock(timezoneOffsetSeconds) {
@@ -223,9 +375,9 @@ function startLocalClock(timezoneOffsetSeconds) {
 function updateMap(lat, lon, label) {
   if (!map) {
     map = L.map("map", { zoomControl: false, attributionControl: true }).setView([lat, lon], 10);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-      maxZoom: 18,
+    L.tileLayer("https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png", {
+      attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 20,
     }).addTo(map);
     mapMarker = L.marker([lat, lon]).addTo(map);
   } else {
@@ -260,7 +412,8 @@ function renderHistory() {
     historyList.innerHTML = `<li class="history-empty">Belum ada riwayat pencarian.</li>`;
     return;
   }
-historyList.innerHTML = history
+
+  historyList.innerHTML = history
     .map((city) => `<li><button type="button" class="history-chip" data-city="${city}">${city}</button></li>`)
     .join("");
 
@@ -278,7 +431,7 @@ clearHistoryBtn.addEventListener("click", () => {
 });
 
 searchForm.addEventListener("submit", (e) => {
-    e.preventDefault();
+  e.preventDefault();
   const city = cityInput.value.trim();
   if (!city) return;
   fetchWeatherByCity(city);
@@ -294,18 +447,20 @@ function initLocation() {
 
   if (!("geolocation" in navigator)) {
     showLoading(`Browser tidak mendukung lokasi, menampilkan ${DEFAULT_CITY} sebagai default...`);
-    fetchWeatherByCity(DEFAULT_CITY).finally(hideLoading);
+    fetchWeatherByCity(DEFAULT_CITY)
+      .then((data) => data && setHomeCity(data.coord.lat, data.coord.lon, data.name))
+      .finally(hideLoading);
     return;
   }
 
   showLoading("Mendeteksi lokasimu...");
   navigator.geolocation.getCurrentPosition(
-    (position) => {
+    async (position) => {
       const { latitude, longitude } = position.coords;
-      fetchWeatherByCoords(latitude, longitude);
+      const data = await fetchWeatherByCoords(latitude, longitude);
+      if (data) setHomeCity(latitude, longitude, data.name);
     },
-    (error) => {
-      // Kasih tahu alasan sebenarnya, baru fallback ke kota default
+    async (error) => {
       let reason;
       switch (error.code) {
         case error.PERMISSION_DENIED:
@@ -321,7 +476,8 @@ function initLocation() {
           reason = "Gagal mendeteksi lokasi karena alasan yang tidak diketahui.";
       }
       console.warn("Geolocation gagal:", reason);
-      fetchWeatherByCity(DEFAULT_CITY);
+      const data = await fetchWeatherByCity(DEFAULT_CITY);
+      if (data) setHomeCity(data.coord.lat, data.coord.lon, data.name);
     },
     { timeout: 8000 }
   );
