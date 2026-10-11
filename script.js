@@ -272,8 +272,10 @@ function buildDailyForecast(data) {
 
 function buildTempChart(days) {
   const W = 700;
-  const H = 80;
+  const H = 110;
   const PAD_X = 10;
+  const PAD_TOP = 30;
+  const PAD_BOT = 16;
   const allTemps = days.flatMap((d) => d.hourly.map((h) => h.temp));
   const tMin = Math.min(...allTemps);
   const tMax = Math.max(...allTemps);
@@ -286,7 +288,7 @@ function buildTempChart(days) {
       Math.abs(a.hour - 12) < Math.abs(b.hour - 12) ? a : b
     );
     const x = PAD_X + di * cardW + cardW / 2;
-    const y = H - 14 - ((midHour.temp - tMin) / range) * (H - 28);
+    const y = PAD_TOP + (H - PAD_TOP - PAD_BOT) * (1 - (midHour.temp - tMin) / range);
     return { x, y, temp: midHour.temp };
   });
 
@@ -304,15 +306,15 @@ function buildTempChart(days) {
   const labels = points
     .map(
       (p) =>
-        `<text x="${p.x}" y="${p.y - 6}" text-anchor="middle" class="chart-label">${p.temp}${unit === "metric" ? "°" : "°F"}</text>`
+        `<text x="${p.x}" y="${p.y - 8}" text-anchor="middle" class="chart-label">${p.temp}${unit === "metric" ? "°" : "°F"}</text>`
     )
     .join("");
 
   return `
-    <svg class="forecast-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    <svg class="forecast-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
       <defs>
         <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="var(--sky-bright)" stop-opacity="0.35"/>
+          <stop offset="0%" stop-color="var(--sky-bright)" stop-opacity="0.3"/>
           <stop offset="100%" stop-color="var(--sky-bright)" stop-opacity="0"/>
         </linearGradient>
       </defs>
@@ -375,8 +377,9 @@ function startLocalClock(timezoneOffsetSeconds) {
 function updateMap(lat, lon, label) {
   if (!map) {
     map = L.map("map", { zoomControl: false, attributionControl: true }).setView([lat, lon], 10);
-    L.tileLayer("https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png", {
-      attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+      subdomains: "abcd",
       maxZoom: 20,
     }).addTo(map);
     mapMarker = L.marker([lat, lon]).addTo(map);
