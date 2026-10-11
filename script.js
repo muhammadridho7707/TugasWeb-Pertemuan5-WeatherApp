@@ -440,46 +440,23 @@ searchForm.addEventListener("submit", (e) => {
 function initLocation() {
   showPlaceholder();
 
-  const isSecureEnough = window.isSecureContext || location.protocol === "file:";
-  if (!isSecureEnough) {
-    console.warn("Geolocation membutuhkan origin aman (https/localhost). Buka lewat server lokal, bukan file://.");
-  }
+  fetchWeatherByCity(DEFAULT_CITY).then((data) => {
+    if (data) setHomeCity(data.coord.lat, data.coord.lon, data.name);
+  });
 
-  if (!("geolocation" in navigator)) {
-    showLoading(`Browser tidak mendukung lokasi, menampilkan ${DEFAULT_CITY} sebagai default...`);
-    fetchWeatherByCity(DEFAULT_CITY)
-      .then((data) => data && setHomeCity(data.coord.lat, data.coord.lon, data.name))
-      .finally(hideLoading);
-    return;
-  }
+  if (!("geolocation" in navigator)) return;
+  if (!window.isSecureContext && location.protocol !== "file:") return;
 
-  showLoading("Mendeteksi lokasimu...");
   navigator.geolocation.getCurrentPosition(
     async (position) => {
       const { latitude, longitude } = position.coords;
       const data = await fetchWeatherByCoords(latitude, longitude);
       if (data) setHomeCity(latitude, longitude, data.name);
     },
-    async (error) => {
-      let reason;
-      switch (error.code) {
-        case error.PERMISSION_DENIED:
-          reason = "Izin lokasi ditolak. Klik ikon gembok/lokasi di address bar lalu izinkan akses lokasi, atau buka lewat http://localhost, bukan file://.";
-          break;
-        case error.POSITION_UNAVAILABLE:
-          reason = "Posisi tidak dapat dideteksi. Pastikan location service di perangkatmu aktif.";
-          break;
-        case error.TIMEOUT:
-          reason = "Deteksi lokasi terlalu lama. Coba lagi dengan koneksi yang lebih stabil.";
-          break;
-        default:
-          reason = "Gagal mendeteksi lokasi karena alasan yang tidak diketahui.";
-      }
-      console.warn("Geolocation gagal:", reason);
-      const data = await fetchWeatherByCity(DEFAULT_CITY);
-      if (data) setHomeCity(data.coord.lat, data.coord.lon, data.name);
+    (error) => {
+      console.warn("Geolocation gagal (kode", error.code, ")— tetap pakai", DEFAULT_CITY);
     },
-    { timeout: 8000 }
+    { timeout: 5000, maximumAge: 60000 }
   );
 }
 
